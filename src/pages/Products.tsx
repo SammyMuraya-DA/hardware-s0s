@@ -52,6 +52,19 @@ const Products = () => {
     return result;
   }, [allProducts, search, selectedCategory, sortBy, inStockOnly, onOfferOnly]);
 
+  const searchSuggestions = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return [];
+
+    return allProducts
+      .filter(product =>
+        product.name.toLowerCase().includes(term) ||
+        (product.brand || "").toLowerCase().includes(term) ||
+        (product.sku || "").toLowerCase().includes(term)
+      )
+      .slice(0, 6);
+  }, [allProducts, search]);
+
   return (
     <div className="min-h-screen pb-20 lg:pb-0">
       <div className="bg-surface/50 border-b border-border">
@@ -65,7 +78,25 @@ const Products = () => {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search for locks, glass, roofing, pipes..."
               className="w-full pl-12 pr-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50 font-body"
+              aria-label="Search products"
             />
+
+            {searchSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 mt-2 bg-background border border-border rounded-xl shadow-lg overflow-hidden z-10">
+                <div className="px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Suggested products</div>
+                {searchSuggestions.map(product => (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => setSearch(product.name)}
+                    className="w-full text-left px-4 py-3 hover:bg-surface transition-colors border-t border-border"
+                  >
+                    <span className="block font-medium text-foreground">{product.name}</span>
+                    <span className="block text-sm text-muted-foreground mt-1">{product.brand || product.sku || formatPrice(product.price)}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
