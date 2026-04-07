@@ -1,7 +1,7 @@
 import { useCartStore } from "@/store/cartStore";
 import { formatPrice } from "@/hooks/useProducts";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Minus, Plus, ShoppingCart } from "lucide-react";
+import { X, ShoppingCart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function CartDrawer() {
@@ -65,20 +65,20 @@ export function CartDrawer() {
                       </div>
                       <p className="text-xs text-muted-foreground font-mono">{item.product.sku}</p>
                       <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-2 border border-border rounded-md">
-                          <button
-                            onClick={() => updateQuantity(item.product.id, Math.max(1, item.quantity - 1))}
-                            className="p-1 hover:bg-muted transition-colors"
-                          >
-                            <Minus className="w-3 h-3" />
-                          </button>
-                          <span className="text-sm font-mono w-6 text-center">{item.quantity}</span>
-                          <button
-                            onClick={() => updateQuantity(item.product.id, Math.min(item.product.stock_quantity, item.quantity + 1))}
-                            className="p-1 hover:bg-muted transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                          </button>
+                        <div className="flex items-center gap-2 border border-border rounded-md overflow-hidden">
+                          <input
+                            type="number"
+                            min={1}
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const value = parseInt(e.target.value, 10);
+                              if (!Number.isNaN(value)) {
+                                updateQuantity(item.product.id, Math.max(value, 1));
+                              }
+                            }}
+                            className="w-20 text-center py-2 bg-background text-sm font-mono focus:outline-none"
+                            aria-label={`Quantity for ${item.product.name}`}
+                          />
                         </div>
                         <span className="font-mono-price text-primary text-sm">
                           {formatPrice(item.product.price * item.quantity)}
