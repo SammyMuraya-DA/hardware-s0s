@@ -94,10 +94,16 @@ export default function Checkout() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [mpesaReceipt, setMpesaReceipt] = useState<string | null>(null);
+  const [orderSnapshot, setOrderSnapshot] = useState<{ items: { name: string; quantity: number; price: number; unit?: string }[]; subtotal: number; deliveryFee: number; totalAmount: number; deliveryType: "pickup" | "delivery"; addressData: AddressData | null } | null>(null);
 
   const subtotal = total();
   const deliveryFee = deliveryType === "pickup" ? 0 : (addressData?.county?.toLowerCase() === "nyeri" ? DELIVERY_FEE_NYERI : DELIVERY_FEE_UPCOUNTRY);
   const totalAmount = subtotal + deliveryFee;
+  const displaySubtotal = orderSnapshot?.subtotal ?? subtotal;
+  const displayDeliveryFee = orderSnapshot?.deliveryFee ?? deliveryFee;
+  const displayTotalAmount = orderSnapshot?.totalAmount ?? totalAmount;
+  const displayDeliveryType = orderSnapshot?.deliveryType ?? deliveryType;
+  const displayAddressData = orderSnapshot?.addressData ?? addressData;
 
   const contactForm = useForm<ContactData>({
     resolver: zodResolver(contactSchema),
@@ -140,18 +146,26 @@ export default function Checkout() {
     }
   };
 
-  const sendToWhatsApp = (orderNum: string, isPaid: boolean, receipt?: string | null) => {
+  const sendToWhatsApp = (orderNum: string, isPaid: boolean, receipt?: string | null, snapshot?: { items: { name: string; quantity: number; price: number; unit?: string }[]; subtotal: number; deliveryFee: number; totalAmount: number; deliveryType: "pickup" | "delivery"; addressData: AddressData | null } ) => {
     if (!contactData) return;
+    const orderData = snapshot ?? orderSnapshot;
+    const itemsToSend = orderData?.items ?? items.map(i => ({ name: i.product.name, quantity: i.quantity, price: Number(i.product.price), unit: i.product.unit || undefined }));
+    const subtotalToSend = orderData?.subtotal ?? subtotal;
+    const deliveryFeeToSend = orderData?.deliveryFee ?? deliveryFee;
+    const totalAmountToSend = orderData?.totalAmount ?? totalAmount;
+    const deliveryTypeToSend = orderData?.deliveryType ?? deliveryType;
+    const addressToSend = orderData?.addressData ?? addressData;
+
     const msg = buildWhatsAppMessage({
       orderNumber: orderNum,
       customerName: contactData.fullName,
       customerPhone: contactData.phone,
-      items: items.map(i => ({ name: i.product.name, quantity: i.quantity, price: Number(i.product.price), unit: i.product.unit || undefined })),
-      subtotal,
-      deliveryFee,
-      totalAmount,
-      deliveryType,
-      addressData,
+      items: itemsToSend,
+      subtotal: subtotalToSend,
+      deliveryFee: deliveryFeeToSend,
+      totalAmount: totalAmountToSend,
+      deliveryType: deliveryTypeToSend,
+      addressData: addressToSend,
       isPaid,
       mpesaReceipt: receipt,
     });
@@ -195,13 +209,22 @@ export default function Checkout() {
       const { error: itemsErr } = await supabase.from("order_items").insert(orderItems);
       if (itemsErr) throw new Error(itemsErr.message);
 
+      const snapshot = {
+        items: items.map(i => ({ name: i.product.name, quantity: i.quantity, price: Number(i.product.price), unit: i.product.unit || undefined })),
+        subtotal,
+        deliveryFee,
+        totalAmount,
+        deliveryType,
+        addressData,
+      };
+      setOrderSnapshot(snapshot);
       setOrderId(order.id);
       setOrderNumber(orderNum);
       setPaymentMethod("pay_later");
       setPaymentState("success");
 
       // Send WhatsApp
-      sendToWhatsApp(orderNum, false);
+      sendToWhatsApp(orderNum, false, undefined, snapshot);
       clearCart();
       toast({ title: "Order placed!", description: "Your order has been recorded. Pay when you pick up or on delivery." });
     } catch (err: any) {
@@ -267,9 +290,18 @@ export default function Checkout() {
           clearInterval(timer);
           clearInterval(pollInterval);
           setMpesaReceipt(payment.mpesa_receipt_number);
+          const snapshot = {
+            items: items.map(i => ({ name: i.product.name, quantity: i.quantity, price: Number(i.product.price), unit: i.product.unit || undefined })),
+            subtotal,
+            deliveryFee,
+            totalAmount,
+            deliveryType,
+            addressData,
+          };
+          setOrderSnapshot(snapshot);
           setPaymentState("success");
           // Send WhatsApp with paid status
-          sendToWhatsApp(data.orderNumber, true, payment.mpesa_receipt_number);
+          sendToWhatsApp(data.orderNumber, true, payment.mpesa_receipt_number, snapshot);
           clearCart();
         } else if (payment?.status === "failed" || payment?.status === "cancelled") {
           clearInterval(timer);
@@ -299,7 +331,7 @@ export default function Checkout() {
           <h1 className="font-display text-4xl md:text-5xl text-primary">ORDER CONFIRMED!</h1>
           <div className="glass-card p-6 text-left space-y-3 font-mono text-sm border border-border/50">
             <div className="flex justify-between"><span className="text-muted-foreground">Order:</span><span className="text-foreground font-bold">#{orderNumber}</span></div>
-            <div className="flex justify-between"><span className="text-muted-foreground">Total:</span><span className="text-primary font-bold">{formatPrice(totalAmount)}</span></div>
+            <div className="flex justify-between"><span className="text-muted-foreground">Total:</span><span className="text-primary font-bold">{formatPrice(displayTotalAmount)}</span></div>
             {mpesaReceipt && <div className="flex justify-between"><span className="text-muted-foreground">Receipt:</span><span className="text-foreground">{mpesaReceipt}</span></div>}
             <div className="flex justify-between">
               <span className="text-muted-foreground">Payment:</span>
@@ -323,7 +355,7 @@ export default function Checkout() {
                 <QrCode className="w-4 h-4" /> Scan to Pay via M-Pesa
               </div>
               <div className="bg-white rounded-xl p-4 inline-block mx-auto">
-                <QRCodeSVG value={`PAY TO TILL: 123456\nOrder: ${orderNumber}\nAmount: KES ${totalAmount}\nPhone: 0707209775`} size={150} level="H" />
+                <QRCodeSVG value={`PAY TO TILL: 123456\nOrder: ${orderNumber}\nAmount: KES ${displayTotalAmount}\nPhone: 0707209775`} size={150} level="H" />
               </div>
               <div className="space-y-1">
                 <p className="text-xs text-muted-foreground">Till Number</p>

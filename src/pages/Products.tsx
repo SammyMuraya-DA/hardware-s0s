@@ -92,7 +92,10 @@ const Products = () => {
                     className="w-full text-left px-4 py-3 hover:bg-surface transition-colors border-t border-border"
                   >
                     <span className="block font-medium text-foreground">{product.name}</span>
-                    <span className="block text-sm text-muted-foreground mt-1">{product.brand || product.sku || formatPrice(product.price)}</span>
+                    <span className="flex items-center justify-between gap-3 text-sm text-muted-foreground mt-1">
+                      <span>{product.brand || product.sku}</span>
+                      <span className="font-semibold text-foreground">{formatPrice(product.price)}</span>
+                    </span>
                   </button>
                 ))}
               </div>
