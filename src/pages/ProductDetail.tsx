@@ -15,7 +15,7 @@ import {
   ArrowLeft,
   BadgeCheck,
 } from "lucide-react";
-import { useProductBySlug, useProducts, formatPrice, getStockStatus } from "@/hooks/useProducts";
+import { useProductBySlug, useProducts, useCategories, formatPrice, getStockStatus } from "@/hooks/useProducts";
 import { useCartStore } from "@/store/cartStore";
 import { ProductCard } from "@/components/ProductCard";
 import { toast } from "@/hooks/use-toast";
@@ -24,6 +24,7 @@ const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { data: product, isLoading } = useProductBySlug(slug || "");
   const { data: allProducts = [] } = useProducts();
+  const { data: categories = [] } = useCategories();
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
   const [qty, setQty] = useState(1);
@@ -70,6 +71,7 @@ const ProductDetail = () => {
   const isLowStock = stockStatus === "low_stock";
   const related = allProducts.filter((p) => p.category_id === product.category_id && p.id !== product.id).slice(0, 4);
   const specs = product.specifications as Record<string, string> | null;
+  const currentCategory = categories.find((category) => category.id === product.category_id);
 
   const handleAddToCart = () => {
     if (isOutOfStock) return;
@@ -146,12 +148,36 @@ const ProductDetail = () => {
             <div className="rounded-2xl border border-border bg-background/40 p-5 md:p-6">
               <div className="mb-5 flex flex-wrap items-center gap-2">
                 <span className="label-caps text-primary">{product.brand || "SOS Hardware"}</span>
-                {product.category_id && (
-                  <span className="rounded-full bg-surface-2 px-2.5 py-1 text-xs text-muted-foreground">
-                    Hardware Supply
-                  </span>
-                )}
               </div>
+
+              {currentCategory && (
+                <div className="mb-5 rounded-2xl border border-border bg-surface/40 p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="label-caps text-primary">Category</p>
+                      <p className="mt-1 text-base font-semibold text-foreground">{currentCategory.name}</p>
+                      {currentCategory.tagline && (
+                        <p className="mt-1 text-sm text-muted-foreground">{currentCategory.tagline}</p>
+                      )}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <Link
+                        to={`/category/${currentCategory.slug}`}
+                        className="inline-flex items-center justify-center rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-amber-light"
+                      >
+                        Browse category
+                      </Link>
+                      <Link
+                        to="/products"
+                        className="inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-foreground/20 hover:text-foreground"
+                      >
+                        View full catalogue
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <h1 className="font-heading text-3xl font-bold text-foreground md:text-4xl">{product.name}</h1>
               <p className="mt-2 font-mono text-sm text-muted-foreground">SKU: {product.sku}</p>

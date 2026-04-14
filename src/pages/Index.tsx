@@ -80,7 +80,7 @@ const Index = () => {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
               <p className="label-caps text-primary mb-6 flex items-center gap-3">
                 <span className="w-8 h-px bg-primary" />
-                {sc("hero_subtitle", "NYERI'S TRUSTED HARDWARE PARTNER")}
+                {sc("hero_subtitle", "COUNTRY WIDE TRUSTED HARDWARE PARTNER")}
               </p>
             </motion.div>
             <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.15 }} className="mb-6">

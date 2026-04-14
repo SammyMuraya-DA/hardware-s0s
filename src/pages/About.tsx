@@ -48,8 +48,8 @@ export default function About() {
               Built on trust, stocked for serious work.
             </h1>
             <p className="mt-6 max-w-3xl text-lg leading-relaxed text-muted-foreground">
-              SOS Hardware & Glassmart, founded by Steve Wanga, has grown into a trusted source
-              for quality building materials in Nyeri. From locks, roofing sheets, and plumbing
+              SOS Hardware & Glassmart, founded under the guidance of experienced professionals, has grown into a trusted source
+              for quality building materials Country Wide. From locks, roofing sheets, and plumbing
               supplies to glass, tools, and finishing essentials, we help customers buy with
               clarity and build with confidence.
             </p>

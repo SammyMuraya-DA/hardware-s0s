@@ -10,7 +10,7 @@ export default function Contact() {
             <p className="label-caps text-primary mb-4">GET IN TOUCH</p>
             <h1 className="font-display text-5xl md:text-6xl text-foreground mb-6">CONTACT US</h1>
             <p className="text-lg text-muted-foreground max-w-2xl">
-              Visit our shop in Nyeri Town or reach out via WhatsApp for quotes, advice, or orders.
+              Visit our shop in Nyeri Ruringu or reach out via WhatsApp for quotes, advice, or orders.
             </p>
           </motion.div>
 

@@ -7,6 +7,7 @@ import { Navbar } from "@/components/Navbar";
 import { CartDrawer } from "@/components/CartDrawer";
 import { Footer } from "@/components/Footer";
 import { WhatsAppWidget } from "@/components/WhatsAppWidget";
+import { SEO } from "@/components/SEO";
 import Index from "./pages/Index";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
@@ -37,6 +38,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <BrowserRouter>
+          <SEO />
           <Routes>
             <Route path="/admin" element={<AdminDashboard />}>
               <Route index element={<AdminOverview />} />

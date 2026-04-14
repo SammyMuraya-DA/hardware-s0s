@@ -28,13 +28,22 @@ export function useProducts() {
   return useQuery({
     queryKey: ["products"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("products")
-        .select("*")
-        .eq("is_active", true)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as DbProduct[];
+      const allProducts: DbProduct[] = [];
+      const pageSize = 1000;
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("products")
+          .select("*")
+          .eq("is_active", true)
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+        if (error) throw error;
+        allProducts.push(...(data as DbProduct[]));
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return allProducts;
     },
   });
 }

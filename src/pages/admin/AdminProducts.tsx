@@ -61,7 +61,11 @@ export default function AdminProducts() {
   const [inlineEdits, setInlineEdits] = useState<Record<string, Record<string, any>>>({});
   const [savingInline, setSavingInline] = useState<Set<string>>(new Set());
   const [filterCategory, setFilterCategory] = useState("all");
+  const [selectedProductsByCategory, setSelectedProductsByCategory] = useState<Record<string, Set<string>>>({});
+  const [bulkCategoryTarget, setBulkCategoryTarget] = useState<{ id: string; name: string } | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const categoryImageInputRef = useRef<HTMLInputElement>(null);
+  const categoryImageUploadContextRef = useRef<{ id: string; name: string } | null>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
   const bulkExcelRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -229,6 +233,74 @@ export default function AdminProducts() {
   };
 
   const removeImage = (idx: number) => setProductImages(prev => prev.filter((_, i) => i !== idx));
+
+  const handleBulkCategoryImageUpload = async (categoryId: string, categoryName: string, files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const selectedProductIds = Array.from(selectedProductsByCategory[categoryId] || []);
+    const categoryProducts = products.filter(product => selectedProductIds.includes(product.id));
+
+    if (categoryProducts.length === 0) {
+      toast({
+        title: "No products selected",
+        description: `Select one or more products in ${categoryName} before uploading images.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setBulkUploading(true);
+    const newUrls: string[] = [];
+
+    try {
+      for (const file of Array.from(files)) {
+        const ext = file.name.split(".").pop();
+        const path = `products/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error } = await supabase.storage.from("product-images").upload(path, file);
+        if (error) throw error;
+
+        const { data: urlData } = supabase.storage.from("product-images").getPublicUrl(path);
+        newUrls.push(urlData.publicUrl);
+      }
+
+      if (newUrls.length === 0) {
+        toast({ title: "No images uploaded", description: "Select at least one valid image.", variant: "destructive" });
+        return;
+      }
+
+      const updates = categoryProducts.map(product => {
+        const existingImages = Array.isArray(product.images) ? product.images : [];
+        return supabase
+          .from("products")
+          .update({ images: [...existingImages, ...newUrls] })
+          .eq("id", product.id);
+      });
+
+      const results = await Promise.all(updates);
+      const failedUpdates = results.filter(result => result.error);
+
+      if (failedUpdates.length > 0) {
+        throw new Error(failedUpdates[0].error?.message || "Some products could not be updated");
+      }
+
+      toast({
+        title: "Bulk images uploaded",
+        description: `${newUrls.length} image(s) added to ${categoryProducts.length} selected product(s) in ${categoryName}.`,
+      });
+      setSelectedProductsByCategory(prev => ({ ...prev, [categoryId]: new Set() }));
+      setBulkCategoryTarget(null);
+      categoryImageUploadContextRef.current = null;
+      if (categoryImageInputRef.current) categoryImageInputRef.current.value = "";
+      load();
+    } catch (err: any) {
+      toast({
+        title: "Bulk product upload failed",
+        description: err.message || "Unable to upload images for the selected products.",
+        variant: "destructive",
+      });
+    } finally {
+      setBulkUploading(false);
+    }
+  };
 
   const handleSave = async () => {
     if (!form.name || !form.price) {
@@ -646,12 +718,43 @@ export default function AdminProducts() {
 
   const f = (key: keyof ProductForm, val: string | boolean) => setForm(prev => ({ ...prev, [key]: val }));
 
-  const renderInlineRow = (p: any) => {
+  const toggleCategoryProductSelection = (categoryId: string, productId: string) => {
+    setSelectedProductsByCategory(prev => {
+      const next = new Set(prev[categoryId] || []);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return { ...prev, [categoryId]: next };
+    });
+  };
+
+  const toggleSelectAllCategoryProducts = (categoryId: string, productIds: string[]) => {
+    setSelectedProductsByCategory(prev => {
+      const current = prev[categoryId] || new Set<string>();
+      const allSelected = productIds.length > 0 && productIds.every(id => current.has(id));
+      return {
+        ...prev,
+        [categoryId]: allSelected ? new Set() : new Set(productIds),
+      };
+    });
+  };
+
+  const renderInlineRow = (p: any, categoryId?: string) => {
     const edits = inlineEdits[p.id] || {};
     const hasEdits = Object.keys(edits).length > 0;
     const isSaving = savingInline.has(p.id);
+    const isSelected = categoryId ? (selectedProductsByCategory[categoryId]?.has(p.id) ?? false) : false;
     return (
       <tr key={p.id} className="border-b border-border/50 hover:bg-surface-2/30 transition-colors group">
+        {categoryId && (
+          <td className="p-2">
+            <input
+              type="checkbox"
+              checked={isSelected}
+              onChange={() => toggleCategoryProductSelection(categoryId, p.id)}
+              className="rounded border-border w-4 h-4"
+            />
+          </td>
+        )}
         <td className="p-2">
           {p.images?.[0] ? (
             <img src={p.images[0]} alt="" className="w-9 h-9 rounded-lg object-cover border border-border" />
@@ -739,21 +842,65 @@ export default function AdminProducts() {
       {/* Category View */}
       {viewMode === "category" ? (
         <div className="space-y-3">
-          {productsByCategory.map(cat => (
-            <motion.div key={cat.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card border border-border/50 overflow-hidden">
-              <button onClick={() => toggleCat(cat.id)} className="w-full flex items-center justify-between p-4 hover:bg-surface-2/50 transition-colors">
-                <div className="flex items-center gap-3">
-                  {expandedCats.has(cat.id) ? <ChevronDown className="w-4 h-4 text-primary" /> : <ChevronRight className="w-4 h-4 text-muted-foreground" />}
-                  <span className="font-heading font-bold text-foreground">{cat.name}</span>
+          {productsByCategory.map(cat => {
+            const categoryProductIds = cat.products.map((product: any) => product.id);
+            const selectedCount = Array.from(selectedProductsByCategory[cat.id] || []).filter(id => categoryProductIds.includes(id)).length;
+            const allSelected = categoryProductIds.length > 0 && categoryProductIds.every(id => selectedProductsByCategory[cat.id]?.has(id));
+            return (
+              <motion.div key={cat.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="glass-card border border-border/50 overflow-hidden">
+              <div className="w-full flex items-center justify-between p-4 gap-3">
+                <button onClick={() => toggleCat(cat.id)} className="flex min-w-0 flex-1 items-center gap-3 text-left hover:text-primary transition-colors">
+                  {expandedCats.has(cat.id) ? <ChevronDown className="w-4 h-4 text-primary flex-shrink-0" /> : <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />}
+                  <span className="font-heading font-bold text-foreground truncate">{cat.name}</span>
                   <span className="px-2 py-0.5 rounded-full text-xs bg-primary/10 text-primary font-medium">{cat.products.length}</span>
+                </button>
+                {cat.id !== "uncategorized" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="gap-2 h-8"
+                    disabled={bulkUploading}
+                    onClick={() => {
+                      const target = { id: cat.id, name: cat.name };
+                      setBulkCategoryTarget(target);
+                      categoryImageUploadContextRef.current = target;
+                      if (categoryImageInputRef.current) {
+                        categoryImageInputRef.current.value = "";
+                        categoryImageInputRef.current.click();
+                      }
+                    }}
+                  >
+                    {bulkUploading && bulkCategoryTarget?.id === cat.id ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    {bulkUploading && bulkCategoryTarget?.id === cat.id ? "Uploading..." : "Bulk Images"}
+                  </Button>
+                )}
+              </div>
+              {cat.id !== "uncategorized" && (
+                <div className="px-4 pb-3 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={() => toggleSelectAllCategoryProducts(cat.id, categoryProductIds)}
+                      className="rounded border-border w-4 h-4"
+                    />
+                    <span>Select all in {cat.name}</span>
+                  </label>
+                  <span>{selectedCount} selected</span>
                 </div>
-              </button>
+              )}
               <AnimatePresence>
                 {expandedCats.has(cat.id) && (
                   <motion.div initial={{ height: 0 }} animate={{ height: "auto" }} exit={{ height: 0 }} className="overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-t border-b border-border bg-surface-2/30">
+                          {cat.id !== "uncategorized" && <th className="text-left p-2 text-muted-foreground font-medium text-xs w-10">Sel</th>}
                           <th className="text-left p-2 text-muted-foreground font-medium text-xs w-12">Img</th>
                           <th className="text-left p-2 text-muted-foreground font-medium text-xs">Name</th>
                           <th className="text-left p-2 text-muted-foreground font-medium text-xs w-20">SKU</th>
@@ -763,13 +910,14 @@ export default function AdminProducts() {
                           <th className="text-left p-2 text-muted-foreground font-medium text-xs w-24">Actions</th>
                         </tr>
                       </thead>
-                      <tbody>{cat.products.map(renderInlineRow)}</tbody>
+                      <tbody>{cat.products.map((product: any) => renderInlineRow(product, cat.id !== "uncategorized" ? cat.id : undefined))}</tbody>
                     </table>
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.div>
-          ))}
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
         /* Table View */
@@ -792,7 +940,7 @@ export default function AdminProducts() {
                   <tr><td colSpan={7} className="p-8 text-center"><div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr>
                 ) : products.length === 0 ? (
                   <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No products found</td></tr>
-                ) : products.map(renderInlineRow)}
+                ) : products.map(product => renderInlineRow(product))}
               </tbody>
             </table>
           </div>
@@ -863,6 +1011,20 @@ export default function AdminProducts() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <input
+        ref={categoryImageInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={e => {
+          const target = categoryImageUploadContextRef.current || bulkCategoryTarget;
+          if (target && e.target.files?.length) {
+            handleBulkCategoryImageUpload(target.id, target.name, e.target.files);
+          }
+        }}
+      />
 
       {/* Bulk Import Dialog */}
       <Dialog open={bulkUploadOpen} onOpenChange={setBulkUploadOpen}>

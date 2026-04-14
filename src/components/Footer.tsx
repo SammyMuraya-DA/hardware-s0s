@@ -126,7 +126,7 @@ export function Footer() {
             <ul className="space-y-3.5">
               <li className="flex items-start gap-2 text-sm text-muted-foreground">
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" />
-                <span>Nyeri Town, Kirinyaga Road</span>
+                <span>Nyeri Ruringu, Off Parliament Road </span>
               </li>
               <li className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Phone className="h-4 w-4 flex-shrink-0 text-primary" />
@@ -142,7 +142,7 @@ export function Footer() {
                   rel="noopener noreferrer"
                   className="transition-colors hover:text-primary"
                 >
-                  WhatsApp Steve
+                  WhatsApp Sos
                 </a>
               </li>
               <li className="text-sm text-muted-foreground">
@@ -150,7 +150,7 @@ export function Footer() {
                 <br />
                 Mon–Sat: 7:30AM–6PM
                 <br />
-                Sun: 9AM–1PM
+                Sun: 9AM–3PM
               </li>
             </ul>
           </div>
@@ -159,7 +159,7 @@ export function Footer() {
 
       <div className="border-t border-white/10">
         <div className="container flex flex-col items-center justify-between gap-2 py-4 text-center sm:flex-row sm:text-left">
-          <p className="text-xs text-muted-foreground">© 2025 SOS Hardware & Glassmart. Built in Nyeri 🇰🇪</p>
+          <p className="text-xs text-muted-foreground">© 2026 SOS Hardware & Glassmart. Developed by Konnex Infotech Solution 🇰🇪</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-muted-foreground sm:justify-end">
             <span>Payments secured by M-Pesa</span>
             <Link to="/contact" className="transition-colors hover:text-primary">
