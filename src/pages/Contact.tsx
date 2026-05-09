@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 const locations = [
   {
     name: 'Ruring\'u Branch',
-    address: 'Nyeri, Nairobi Road off Ruring\'u',
-    phone: '+254 701 207207',
+    address: 'Nyeri, Parliament Road off Ruring\'u',
+    phone: '+254 727607125',
     email: 'glassmartkenya@gmail.com',
     hours: 'Mon-Sat 8am-7pm',
   },

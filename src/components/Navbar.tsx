@@ -16,6 +16,7 @@ const navLinks = [
   { to: '/products?category=Plumbing', label: 'Plumbing' },
   { to: '/products?category=Electrical', label: 'Electrical' },
   { to: '/products?category=Paints+%26+Finishes', label: 'Paints' },
+  {to: '/Contact', label: 'Contact'},
 ];
 
 const Navbar = () => {

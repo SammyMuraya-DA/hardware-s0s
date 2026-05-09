@@ -61,7 +61,7 @@ const Footer = () => (
           ))}
         </div>
         <ul className="space-y-1.5 text-steel-foreground/80 text-xs">
-          <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> +254 701 207207</li>
+          <li className="flex items-center gap-2"><Phone className="w-3.5 h-3.5" /> +254 727607125</li>
           <li className="flex items-center gap-2"><Mail className="w-3.5 h-3.5" /> glassmartkenya@gmail.com</li>
           <li className="flex items-center gap-2"><MapPin className="w-3.5 h-3.5" /> Nairobi Rd, Ruring'u, Nyeri</li>
           <li className="flex items-center gap-2"><Clock className="w-3.5 h-3.5" /> Mon–Sat 8am–7pm</li>
