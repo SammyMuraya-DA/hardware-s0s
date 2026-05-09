@@ -14,7 +14,7 @@ import { REGIONS, getRegion, formatDeliveryAddress, RegionKey } from '@/lib/loca
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import mpesaPaybill from '@/assets/mpesa-paybill.jpg';
 
-const WHATSAPP_NUMBER = '254727602175'; // SOS Hardware WhatsApp
+const WHATSAPP_NUMBER = '254727607125'; // SOS Hardware WhatsApp
 
 const deliverySchema = z.object({
   name: z.string().trim().min(2, 'Name must be at least 2 characters').max(100),
